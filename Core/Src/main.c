@@ -128,11 +128,10 @@ int main(void)
 
 
 
-  lcd_setup();
-  lcd_copy();
+
 
 //  lcd_cmd(0x80 | 0x3f); //Ustawienie kontrastu
-/*============WYCIĘCIE 2===============================
+/*============WYCI�?CIE 2===============================
  * ====================================================
 
   HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_SET);	//włączenie podświetlenia
@@ -183,7 +182,7 @@ int main(void)
   }
 
 
-//==============WYCIĘCIE 2=========================
+//==============WYCI�?CIE 2=========================
 //-----------------------------------------------*/
 
   /* USER CODE END 2 */
@@ -192,17 +191,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  lcd_setup();
+	  lcd_clear();
 	  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
 	  {
-		  HAL_Delay(200);		//opóźnienie
+		  HAL_Delay(100);
 		  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
 		  {
 			  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_SET);	//włączenie podświetlenia
+			  HAL_Delay(1000);		//odczekaj po inicjalizacji czujnika temperatury - KONIECZNE!!!
 
 			  //----------------------------------------------
 			  //==============================================
-			  HAL_Delay(1000);		//odczekaj po inicjalizacji czujnika temperatury - KONIECZNE!!!
+
 			  DS18B20_ReadAll();	//odczytanie skonwertowanej temperatury do odpowiednich elementów w tablicy czujników
 			  DS18B20_StartAll();	//rozesłanie do wszystkich podłączonych czujników komendy startu konwersji temperatury
 			  uint8_t i;
@@ -214,7 +215,7 @@ int main(void)
 
 			//		  DS18B20_GetROM(i, ROM_tmp);
 			//		  memset(komunikat, 0, sizeof(komunikat));
-				  sprintf(komunikat, "Temp: %.2f \n\r", temperature);
+				  sprintf(komunikat, "Temp: %.2f ", temperature);
 				  lcd_draw_text(1,2, "Temp: ");
 
 				  sprintf(buffer, "%.2f", temperature);
@@ -227,10 +228,11 @@ int main(void)
 
 				  if(RtcTime.Seconds != CompareSeconds)		//sprawia, że czas i data aktualizuje się na wyświetlaczu co sekundę
 					  {
-					  sprintf(RtcPrint, "%02d:%02d:%02d \n\r", RtcTime.Hours, RtcTime.Minutes, RtcTime.Seconds);
+					  sprintf(RtcPrint, "%02d:%02d:%02d ", RtcTime.Hours, RtcTime.Minutes, RtcTime.Seconds);
 					  lcd_draw_text(3, 2, (uint8_t *)RtcPrint);
-					  sprintf(RtcPrint, "%02d.%02d.20%02d\n\r", RtcDate.Date, RtcDate.Month, RtcDate.Year);
-					  lcd_draw_text(4, 2, (uint8_t *)RtcPrint);
+					  HAL_UART_Transmit(&huart2, (uint8_t *) RtcPrint, sizeof(RtcPrint), 100);
+					  sprintf(RtcPrint, "%02d.%02d.20%02d", RtcDate.Date, RtcDate.Month, RtcDate.Year);
+					  lcd_draw_text(5, 20, (uint8_t *)RtcPrint);
 					  HAL_UART_Transmit(&huart2, (uint8_t*) RtcPrint, sizeof(RtcPrint), 1000);
 					  CompareSeconds = RtcTime.Seconds;
 					  }
@@ -239,7 +241,7 @@ int main(void)
 			//	  }
 				  lcd_copy();
 				  HAL_UART_Transmit(&huart2, (uint8_t *)komunikat, sizeof(komunikat), 100);
-				  HAL_UART_Transmit(&huart2, (uint8_t *)buffer2, sizeof(buffer2), 100);
+				  HAL_UART_Transmit(&huart2, (uint8_t *)buffer, sizeof(buffer), 100);
 				  HAL_Delay(10000);
 				lcd_deinit();
 				HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_RESET);	//wyłączenie podświetlenia

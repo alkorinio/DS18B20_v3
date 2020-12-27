@@ -37,7 +37,7 @@ void lcd_setup(void)
 
 	lcd_cmd(PCD8544_FUNCTION_SET | 1);
 	lcd_cmd(PCD8544_H_BIAS | 4);
-	lcd_cmd(PCD8544_H_VOP | 0x3f);
+	lcd_cmd(PCD8544_H_VOP | 0x36);		//kontrast
 	lcd_cmd(PCD8544_FUNCTION_SET);
 	lcd_cmd(PCD8544_DISP_NORMAL);
 }
