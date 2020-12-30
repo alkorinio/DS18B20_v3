@@ -58,6 +58,7 @@ char komunikat[20];
 char buffer[8];
 char buffer2[] = "test";
 int test_val = 7;
+uint8_t DeinitDelay = 0;
 
 RTC_TimeTypeDef RtcTime;
 RTC_DateTypeDef RtcDate;
@@ -125,7 +126,7 @@ int main(void)
 
   //-----------INICJALIZACJA PARAMETRÓW DS18B20-----------------
   DS18B20_Init(DS18B20_Resolution_12bits);	//rozdzielczość 10 bit (dokładność 0,25 C)
-
+  HAL_Delay(1000);		//odczekaj po inicjalizacji czujnika temperatury - KONIECZNE!!!
 
 
 
@@ -193,58 +194,70 @@ int main(void)
   {
 	  lcd_setup();
 	  lcd_clear();
+	  DS18B20_ReadAll();	//odczytanie skonwertowanej temperatury do odpowiednich elementów w tablicy czujników
+	  DS18B20_StartAll();	//rozesłanie do wszystkich podłączonych czujników komendy startu konwersji temperatury
 	  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
 	  {
 		  HAL_Delay(100);
 		  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
 		  {
 			  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_SET);	//włączenie podświetlenia
-			  HAL_Delay(1000);		//odczekaj po inicjalizacji czujnika temperatury - KONIECZNE!!!
+
 
 			  //----------------------------------------------
 			  //==============================================
 
-			  DS18B20_ReadAll();	//odczytanie skonwertowanej temperatury do odpowiednich elementów w tablicy czujników
-			  DS18B20_StartAll();	//rozesłanie do wszystkich podłączonych czujników komendy startu konwersji temperatury
+
 			  uint8_t i;
-			  for (i=0; i < DS18B20_Quantity(); i++)
-			  {
-				  if (DS18B20_GetTemperature(i, &temperature))
-
-			//		  DS18B20_Read(0, &temperature);	//nie działa
-
-			//		  DS18B20_GetROM(i, ROM_tmp);
-			//		  memset(komunikat, 0, sizeof(komunikat));
-				  sprintf(komunikat, "Temp: %.2f ", temperature);
-				  lcd_draw_text(1,2, "Temp: ");
-
-				  sprintf(buffer, "%.2f", temperature);
-				  lcd_draw_text(1, 35, (uint8_t *)buffer);
-
-				  lcd_draw_text(1, 68, "C");
-
-				  HAL_RTC_GetTime(&hrtc, &RtcTime, RTC_FORMAT_BIN);
-				  HAL_RTC_GetDate(&hrtc, &RtcDate, RTC_FORMAT_BIN);
-
-				  if(RtcTime.Seconds != CompareSeconds)		//sprawia, że czas i data aktualizuje się na wyświetlaczu co sekundę
+			  HAL_RTC_GetTime(&hrtc, &RtcTime, RTC_FORMAT_BIN);
+			  HAL_RTC_GetDate(&hrtc, &RtcDate, RTC_FORMAT_BIN);
+			  if(RtcTime.Seconds != CompareSeconds)		//sprawia, że czas i data aktualizuje się na wyświetlaczu co sekundę
+				  {
+				  lcd_clear();
+				  for (i=0; i < DS18B20_Quantity(); i++)
 					  {
-					  sprintf(RtcPrint, "%02d:%02d:%02d ", RtcTime.Hours, RtcTime.Minutes, RtcTime.Seconds);
-					  lcd_draw_text(3, 2, (uint8_t *)RtcPrint);
-					  HAL_UART_Transmit(&huart2, (uint8_t *) RtcPrint, sizeof(RtcPrint), 100);
-					  sprintf(RtcPrint, "%02d.%02d.20%02d", RtcDate.Date, RtcDate.Month, RtcDate.Year);
-					  lcd_draw_text(5, 20, (uint8_t *)RtcPrint);
-					  HAL_UART_Transmit(&huart2, (uint8_t*) RtcPrint, sizeof(RtcPrint), 1000);
-					  CompareSeconds = RtcTime.Seconds;
-					  }
+						  if (DS18B20_GetTemperature(i, &temperature))
+
+					//		  DS18B20_Read(0, &temperature);	//nie działa
+
+					//		  DS18B20_GetROM(i, ROM_tmp);
+					//		  memset(komunikat, 0, sizeof(komunikat));
+						  sprintf(komunikat, "Temp: %.2f ", temperature);
+						  lcd_draw_text(1,2, "Temp: ");
+
+						  sprintf(buffer, "%.2f", temperature);
+						  lcd_draw_text(1, 35, (uint8_t *)buffer);
+
+						  lcd_draw_text(1, 68, "C");
+
+
+
+
+							  sprintf(RtcPrint, "%02d:%02d:%02d ", RtcTime.Hours, RtcTime.Minutes, RtcTime.Seconds);
+							  lcd_draw_text(3, 2, (uint8_t *)RtcPrint);
+							  HAL_UART_Transmit(&huart2, (uint8_t *) RtcPrint, sizeof(RtcPrint), 100);
+							  sprintf(RtcPrint, "%02d.%02d.20%02d", RtcDate.Date, RtcDate.Month, RtcDate.Year);
+							  lcd_draw_text(5, 20, (uint8_t *)RtcPrint);
+							  HAL_UART_Transmit(&huart2, (uint8_t*) RtcPrint, sizeof(RtcPrint), 1000);
+							  CompareSeconds = RtcTime.Seconds;
+
+						 }
+
 
 			//		  lcd_draw_text(2, 35, (uint8_t *)buffer2));		//wyświetla "test"
 			//	  }
 				  lcd_copy();
+				  DeinitDelay++;
 				  HAL_UART_Transmit(&huart2, (uint8_t *)komunikat, sizeof(komunikat), 100);
 				  HAL_UART_Transmit(&huart2, (uint8_t *)buffer, sizeof(buffer), 100);
-				  HAL_Delay(10000);
-				lcd_deinit();
-				HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_RESET);	//wyłączenie podświetlenia
+				  //HAL_Delay(10000);
+				  if (DeinitDelay >9)
+				  	  {
+					  lcd_deinit();
+					  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_RESET);	//wyłączenie podświetlenia
+					  DeinitDelay = 0;
+				  	  }
+				  }
 			  }
 		  }
 	  }
@@ -281,7 +294,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+
   /* USER CODE END 3 */
 }
 
