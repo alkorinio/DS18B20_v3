@@ -59,6 +59,7 @@ char buffer[8];
 char buffer2[] = "test";
 int test_val = 7;
 uint8_t DeinitDelay = 0;
+uint8_t P1_flag = 0;
 
 RTC_TimeTypeDef RtcTime;
 RTC_DateTypeDef RtcDate;
@@ -196,10 +197,9 @@ int main(void)
 	  lcd_clear();
 	  DS18B20_ReadAll();	//odczytanie skonwertowanej temperatury do odpowiednich elementów w tablicy czujników
 	  DS18B20_StartAll();	//rozesłanie do wszystkich podłączonych czujników komendy startu konwersji temperatury
-	  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
-	  {
-		  HAL_Delay(100);
-		  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET)
+
+
+		  if (P1_flag == 1)
 		  {
 			  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_SET);	//włączenie podświetlenia
 
@@ -258,8 +258,9 @@ int main(void)
 					  DeinitDelay = 0;
 				  	  }
 				  }
+			  P1_flag = 0;
 			  }
-		  }
+
 	  }
 
 
@@ -296,6 +297,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
+
 }
 
 /**
@@ -344,7 +346,14 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == P1_Pin)
+	{
+		P1_flag = 1;
+	}
 
+}
 /* USER CODE END 4 */
 
 /**
