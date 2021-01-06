@@ -197,9 +197,9 @@ int main(void)
 	  lcd_clear();
 	  DS18B20_ReadAll();	//odczytanie skonwertowanej temperatury do odpowiednich elementów w tablicy czujników
 	  DS18B20_StartAll();	//rozesłanie do wszystkich podłączonych czujników komendy startu konwersji temperatury
+	  HAL_Delay(1000);		//odczekaj po inicjalizacji czujnika temperatury - KONIECZNE!!!
 
-
-		  if (P1_flag == 1)
+		  while (P1_flag == 1)
 		  {
 			  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_SET);	//włączenie podświetlenia
 
@@ -207,16 +207,18 @@ int main(void)
 			  //----------------------------------------------
 			  //==============================================
 
-
+//			  P1_flag = 0;
 			  uint8_t i;
 			  HAL_RTC_GetTime(&hrtc, &RtcTime, RTC_FORMAT_BIN);
 			  HAL_RTC_GetDate(&hrtc, &RtcDate, RTC_FORMAT_BIN);
+
 			  if(RtcTime.Seconds != CompareSeconds)		//sprawia, że czas i data aktualizuje się na wyświetlaczu co sekundę
 				  {
 				  lcd_clear();
 				  for (i=0; i < DS18B20_Quantity(); i++)
 					  {
 						  if (DS18B20_GetTemperature(i, &temperature))
+
 
 					//		  DS18B20_Read(0, &temperature);	//nie działa
 
@@ -229,36 +231,40 @@ int main(void)
 						  lcd_draw_text(1, 35, (uint8_t *)buffer);
 
 						  lcd_draw_text(1, 68, "C");
+					  }
+
+
+
+					sprintf(RtcPrint, "%02d:%02d:%02d ", RtcTime.Hours, RtcTime.Minutes, RtcTime.Seconds);
+					lcd_draw_text(3, 2, (uint8_t *)RtcPrint);
+					HAL_UART_Transmit(&huart2, (uint8_t *) RtcPrint, sizeof(RtcPrint), 100);
+					sprintf(RtcPrint, "%02d.%02d.20%02d", RtcDate.Date, RtcDate.Month, RtcDate.Year);
+					lcd_draw_text(5, 20, (uint8_t *)RtcPrint);
+					HAL_UART_Transmit(&huart2, (uint8_t*) RtcPrint, sizeof(RtcPrint), 1000);
 
 
 
 
-							  sprintf(RtcPrint, "%02d:%02d:%02d ", RtcTime.Hours, RtcTime.Minutes, RtcTime.Seconds);
-							  lcd_draw_text(3, 2, (uint8_t *)RtcPrint);
-							  HAL_UART_Transmit(&huart2, (uint8_t *) RtcPrint, sizeof(RtcPrint), 100);
-							  sprintf(RtcPrint, "%02d.%02d.20%02d", RtcDate.Date, RtcDate.Month, RtcDate.Year);
-							  lcd_draw_text(5, 20, (uint8_t *)RtcPrint);
-							  HAL_UART_Transmit(&huart2, (uint8_t*) RtcPrint, sizeof(RtcPrint), 1000);
-							  CompareSeconds = RtcTime.Seconds;
-
-						 }
 
 
 			//		  lcd_draw_text(2, 35, (uint8_t *)buffer2));		//wyświetla "test"
 			//	  }
-				  lcd_copy();
-				  DeinitDelay++;
-				  HAL_UART_Transmit(&huart2, (uint8_t *)komunikat, sizeof(komunikat), 100);
-				  HAL_UART_Transmit(&huart2, (uint8_t *)buffer, sizeof(buffer), 100);
+					  lcd_copy();
+					  DeinitDelay++;
+					  HAL_UART_Transmit(&huart2, (uint8_t *)komunikat, sizeof(komunikat), 100);
+					  HAL_UART_Transmit(&huart2, (uint8_t *)buffer, sizeof(buffer), 100);
 				  //HAL_Delay(10000);
-				  if (DeinitDelay >9)
-				  	  {
-					  lcd_deinit();
-					  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_RESET);	//wyłączenie podświetlenia
-					  DeinitDelay = 0;
-				  	  }
+					  if (DeinitDelay >10)
+						  {
+						  lcd_deinit();
+						  HAL_GPIO_WritePin(Backlight_GPIO_Port, Backlight_Pin, GPIO_PIN_RESET);	//wyłączenie podświetlenia
+						  DeinitDelay = 0;
+						  P1_flag = 0;
+						  }
+				  	  CompareSeconds = RtcTime.Seconds;
+
 				  }
-			  P1_flag = 0;
+
 			  }
 
 	  }
